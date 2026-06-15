@@ -1,4 +1,4 @@
-const CACHE_NAME = "math-kids-cache-v1.02";
+const CACHE_NAME = "math-kids-cache-v1.03";
 const CORE_ASSETS = [
   "./",
   "./index.html",
