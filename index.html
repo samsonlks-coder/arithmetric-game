@@ -1000,21 +1000,16 @@
       void timerWrapper.offsetWidth;
       timerWrapper.classList.add("correct-flash");
 
-      // 檢查是否刷新最高分或連續答對 5 題，若是則放 confetti
-      let triggerConfetti = false;
+      // 答對題目則放 confetti
       if (gameState.score > gameState.bestScore) {
         gameState.bestScore = gameState.score;
         lblBestScore.innerText = gameState.bestScore.toString();
         saveBestScore();
-        triggerConfetti = true;
-      }
-      if (gameState.streak > 0 && gameState.streak % 5 === 0) {
-        triggerConfetti = true;
       }
 
-      if (triggerConfetti && typeof confetti === "function") {
+      if (typeof confetti === "function") {
         confetti({
-          particleCount: 150,
+          particleCount: 120,
           spread: 70,
           origin: { y: 0.1 },
         });
