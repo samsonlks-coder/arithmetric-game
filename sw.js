@@ -5,7 +5,7 @@ const CORE_ASSETS = [
   "./manifest.webmanifest"
   // 若有 icon 檔可一起加進來
   // "./icon-192.png",
-  // "./icon-512.png"
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
