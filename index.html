@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>四式整數練習遊戲</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ff9f1c" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- confetti 函式庫（canvas-confetti 或等效版本） -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
+
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #ff9f1c, #ff4040, #2ec4b6);
+      --primary: #ff9f1c;
+      --primary-dark: #e28500;
+      --accent: #2ec4b6;
+      --accent-dark: #249a8f;
+      --danger: #ff4040;
+      --danger-dark: #d62d2d;
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --text-main: #333;
+      --timer-track: #ffe7c2;
+      --timer-fill: #ff5e57;
+      --font-main: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-main);
+      min-height: 100vh;
+      background: var(--bg-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-main);
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 900px;
+      padding: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    h1, h2, h3 {
+      text-align: center;
+      margin-bottom: 12px;
+      color: #222;
+    }
+
+    .subtitle {
+      text-align: center;
+      margin-bottom: 16px;
+      color: #555;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .section {
+      margin-bottom: 16px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.08s ease;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+      background: var(--primary);
+      color: #fff;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    button:active,
+    button.btn-pressed {
+      transform: translateY(1px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+      background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+      background: var(--accent);
+    }
+    .btn-secondary:hover {
+      background: var(--accent-dark);
+    }
+    .btn-danger {
+      background: var(--danger);
+    }
+    .btn-danger:hover {
+      background: var(--danger-dark);
+    }
+
+    .input-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 2px solid #ddd;
+      font-size: 16px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .emoji-choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .emoji-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffe8b3;
+      border: 2px solid transparent;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+    }
+
+    .emoji-btn.selected {
+      border-color: var(--primary);
+      background: #fff7dd;
+    }
+
+    /* 顯示／隱藏區塊 */
+    .screen {
+      display: none;
+    }
+    .screen.active {
+      display: block;
+    }
+
+    /* 遊戲畫面排列 */
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .game-header-left,
+    .game-header-center,
+    .game-header-right {
+      flex: 1;
+    }
+
+    .game-header-center {
+      text-align: center;
+    }
+
+    .hearts {
+      font-size: 22px;
+      text-align: right;
+    }
+
+    .timer-wrapper {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      margin: 0 auto 16px auto;
+    }
+
+    #timerCanvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .question-vertical {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      font-family: "Courier New", monospace;
+      font-size: 28px;
+      color: #222;
+      text-align: right;
+      white-space: pre;
+    }
+
+    .vertical-line {
+      width: 80%;
+      height: 2px;
+      background: #555;
+      margin: 4px 0;
+    }
+
+    .answer-display {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      min-height: 36px;
+      margin-bottom: 8px;
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(60px, 1fr));
+      gap: 8px;
+      justify-items: stretch;
+      margin-bottom: 8px;
+    }
+
+    .keypad button {
+      border-radius: 14px;
+      font-size: 20px;
+      padding: 10px 0;
+      background: #ffd166;
+      color: #333;
+    }
+
+    .keypad button:active,
+    .keypad button.btn-pressed {
+      background: #f1b737;
+    }
+
+    .keypad-bottom-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .keypad .key-clear {
+      background: #ff8c2a;
+      color: #fff;
+    }
+
+    .keypad .key-clear:active,
+    .keypad .key-clear.btn-pressed {
+      background: #e67312;
+    }
+
+    .keypad .key-backspace {
+      background: #ff8c2a;
+      color: #fff;
+    }
+
+    .keypad .key-backspace:active,
+    .keypad .key-backspace.btn-pressed {
+      background: #e67312;
+    }
+
+    .btn-submit {
+      background: #ffa31a;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .btn-submit:active,
+    .btn-submit.btn-pressed {
+      background: #e68a00;
+    }
+
+    .answer-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+      justify-content: center;
+    }
+
+    .info-line {
+      text-align: center;
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    .correct-flash {
+      animation: correctFlash 0.5s ease-out;
+    }
+
+    @keyframes correctFlash {
+      0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(46,196,182,0)); }
+      40% { transform: scale(1.05); filter: drop-shadow(0 0 15px rgba(46,196,182,0.7)); }
+      100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(46,196,182,0)); }
+    }
+
+    .nav-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .nav-top button {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    /* 排行榜 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    th, td {
+      border-bottom: 1px solid #ddd;
+      padding: 6px 4px;
+      text-align: center;
+    }
+    th {
+      background: #fff5da;
+    }
+
+    .small-hint {
+      font-size: 12px;
+      color: #777;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 600px) {
+      .card {
+        padding: 14px;
+      }
+      .timer-wrapper {
+        width: 200px;
+        height: 200px;
+      }
+      .question-vertical {
+        font-size: 24px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="card">
+
+      <!-- 主畫面 -->
+      <div id="screen-main" class="screen active">
+        <h1>四式小小數學家</h1>
+        <p class="subtitle">6-12歲小朋友的計算力挑戰遊戲</p>
+
+        <div class="section">
+          <div class="input-group">
+            <label for="playerName">玩家姓名</label>
+            <input id="playerName" type="text" placeholder="輸入你的名字" />
+          </div>
+          <div class="input-group">
+            <label>選擇頭像 Emoji</label>
+            <div class="emoji-choices" id="emojiChoices">
+              <!-- 會由 JS 指定選中，預設第一個 -->
+              <button type="button" class="emoji-btn selected">😀</button>
+              <button type="button" class="emoji-btn">😎</button>
+              <button type="button" class="emoji-btn">😂</button>
+              <button type="button" class="emoji-btn">😍</button>
+              <button type="button" class="emoji-btn">🦄</button>
+              <button type="button" class="emoji-btn">🐱</button>
+              <button type="button" class="emoji-btn">🐶</button>
+              <button type="button" class="emoji-btn">🐼</button>
+              <button type="button" class="emoji-btn">🐲</button>
+              <button type="button" class="emoji-btn">👽</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="center">
+          <button id="btnStartGame">開始遊戲</button>
+        </div>
+
+        <div class="btn-row" style="margin-top: 18px;">
+          <button class="btn-secondary" id="btnToSettings">遊戲設定</button>
+          <button class="btn-secondary" id="btnToLeaderboard">排行榜</button>
+        </div>
+
+        <p class="small-hint center" style="margin-top: 14px;">
+          提示：遊戲會自動記錄歷史最高分與排行榜，清除紀錄可在排行榜頁面操作。
+        </p>
+      </div>
+
+      <!-- 設定畫面 -->
+      <div id="screen-settings" class="screen">
+        <div class="nav-top">
+          <button class="btn-secondary" id="btnBackFromSettings">← 回主畫面</button>
+          <button class="btn-secondary" id="btnSettingsToMainGame">直接開始遊戲</button>
+        </div>
+
+        <h2>遊戲設定</h2>
+
+        <div class="section">
+          <h3>時間設定</h3>
+          <div class="input-group">
+            <label for="initialTimeSelect">每題起始作答時間</label>
+            <select id="initialTimeSelect">
+              <option value="5">5 秒</option>
+              <option value="10">10 秒</option>
+              <option value="15">15 秒</option>
+              <option value="20">20 秒</option>
+              <option value="25">25 秒</option>
+              <option value="30" selected>30 秒 (預設)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="decaySelect">時間縮短速度</label>
+            <select id="decaySelect">
+              <option value="0.94">快 (x0.94)</option>
+              <option value="0.96" selected>適中 (x0.96，預設)</option>
+              <option value="0.98">慢 (x0.98)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>題目設定</h3>
+          <div class="input-group">
+            <label for="rangeSlider">數值範圍 (10 - 100 以內)</label>
+            <input type="range" id="rangeSlider" min="10" max="100" step="10" value="30" />
+            <div class="small-hint">目前範圍：<span id="rangeValueLabel">30 以內</span></div>
+          </div>
+
+          <div class="input-group">
+            <label>運算種類</label>
+            <div>
+              <label>
+              <label style="margin-left: 12px;"><input type="radio" name="opRadio" value="add" checked /> 加法</label>
+              <label style="margin-left: 12px;"><input type="radio" name="opRadio" value="sub" /> 減法</label>
+              <label style="margin-left: 12px;"><input type="radio" name="opRadio" value="mul" /> 乘法</label>
+              <label style="margin-left: 12px;"><input type="radio" name="opRadio" value="div" /> 除法</label>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>
+              <input type="checkbox" id="chkFastMode" />
+              快而準模式 (愈快答對分數愈高，答錯會扣分)
+            </label>
+          </div>
+
+          <div class="input-group">
+            <label>
+              <input type="checkbox" id="chkRandomMode" />
+              隨機計算組合 (範圍與算法每題隨機)
+            </label>
+            <div class="small-hint">
+              若勾選此項，以上的「數值範圍」與「運算種類」將會無法被改變。
+            </div>
+          </div>
+        </div>
+
+        <div class="center" style="margin-top: 10px;">
+          <button id="btnSaveSettings">儲存設定</button>
+        </div>
+      </div>
+
+      <!-- 遊戲畫面 -->
+      <div id="screen-game" class="screen">
+        <div class="nav-top">
+          <button class="btn-secondary" id="btnGameBackHome">← 回主畫面</button>
+          <button class="btn-secondary" id="btnGameToSettings">設定</button>
+        </div>
+
+        <div class="game-header">
+          <div class="game-header-left">
+            <div id="lblPlayerInfo"></div>
+          </div>
+          <div class="game-header-center">
+            <div>分數：<span id="lblScore">0</span></div>
+            <div>歷史最高：<span id="lblBestScore">0</span></div>
+          </div>
+          <div class="game-header-right">
+            <div class="hearts" id="lblHearts">❤️❤️❤️</div>
+          </div>
+        </div>
+
+        <div class="info-line">
+          每題時間會逐漸縮短，要快又準喔！
+        </div>
+
+        <div class="timer-wrapper" id="timerWrapper">
+          <canvas id="timerCanvas" width="240" height="240"></canvas>
+          <div class="question-vertical" id="questionVertical">
+            <!-- JS 產生直式算式 -->
+          </div>
+        </div>
+
+        <div class="info-line">
+          剩餘時間：<span id="lblTimeRemaining">0.0</span> 秒
+        </div>
+
+        <div class="answer-display" id="answerDisplay"></div>
+
+        <div class="keypad" id="keypadNumbers">
+          <!-- 1-9, 0, C, ⌫ -->
+          <button data-key="1">1</button>
+          <button data-key="2">2</button>
+          <button data-key="3">3</button>
+          <button data-key="4">4</button>
+          <button data-key="5">5</button>
+          <button data-key="6">6</button>
+          <button data-key="7">7</button>
+          <button data-key="8">8</button>
+          <button data-key="9">9</button>
+          <button data-key="C" class="key-clear">清除</button>
+          <button data-key="0">0</button>
+          <button data-key="B" class="key-backspace">⌫</button>
+        </div>
+
+        <div class="keypad-bottom-row">
+          <button id="btnSubmitAnswer" class="btn-submit">送出答案</button>
+          <button id="btnGiveUp" class="btn-danger">放棄</button>
+        </div>
+      </div>
+
+      <!-- 排行榜畫面 -->
+      <div id="screen-leaderboard" class="screen">
+        <div class="nav-top">
+          <button class="btn-secondary" id="btnBackFromLeaderboard">← 回主畫面</button>
+        </div>
+
+        <h2>排行榜</h2>
+        <p class="subtitle">依最高分排序，同名玩家以最新紀錄為主。</p>
+
+        <table id="leaderboardTable">
+          <thead>
+            <tr>
+              <th>名次</th>
+              <th>玩家</th>
+              <th>頭像</th>
+              <th>最高分</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- JS 產生 -->
+          </tbody>
+        </table>
+
+        <div class="center" style="margin-top: 16px;">
+          <button class="btn-danger" id="btnClearRecords">清除所有紀錄</button>
+        </div>
+      </div>
+
+      <!-- 遊戲結束畫面 -->
+      <div id="screen-gameover" class="screen">
+        <h2>遊戲結束</h2>
+        <p class="subtitle" id="gameOverMessage">做得好！看看你的表現吧～</p>
+
+        <div class="section center">
+          <h3>本局分數：<span id="lblFinalScore">0</span></h3>
+          <p>歷史最高分：<span id="lblFinalBest">0</span></p>
+        </div>
+
+        <div class="btn-row">
+          <button id="btnPlayAgain">再玩一次</button>
+          <button class="btn-secondary" id="btnRestBackHome">休息一會</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ======== 全域狀態 ========
+    const SCREENS = {
+      main: document.getElementById("screen-main"),
+      settings: document.getElementById("screen-settings"),
+      game: document.getElementById("screen-game"),
+      leaderboard: document.getElementById("screen-leaderboard"),
+      gameover: document.getElementById("screen-gameover"),
+    };
+
+    const timerCanvas = document.getElementById("timerCanvas");
+    const timerCtx = timerCanvas.getContext("2d");
+    const questionVerticalEl = document.getElementById("questionVertical");
+    const timerWrapper = document.getElementById("timerWrapper");
+
+    const lblScore = document.getElementById("lblScore");
+    const lblBestScore = document.getElementById("lblBestScore");
+    const lblHearts = document.getElementById("lblHearts");
+    const lblPlayerInfo = document.getElementById("lblPlayerInfo");
+    const lblTimeRemaining = document.getElementById("lblTimeRemaining");
+    const answerDisplay = document.getElementById("answerDisplay");
+
+    const keypadNumbers = document.getElementById("keypadNumbers");
+    const btnSubmitAnswer = document.getElementById("btnSubmitAnswer");
+    const btnGiveUp = document.getElementById("btnGiveUp");
+
+    const leaderboardTableBody = document.querySelector("#leaderboardTable tbody");
+    const btnClearRecords = document.getElementById("btnClearRecords");
+
+    const lblFinalScore = document.getElementById("lblFinalScore");
+    const lblFinalBest = document.getElementById("lblFinalBest");
+    const gameOverMessage = document.getElementById("gameOverMessage");
+
+    const LOCAL_KEYS = {
+      bestScore: "mathKidsBestScore",
+      leaderboard: "mathKidsLeaderboard",
+      settings: "mathKidsSettings",
+    };
+
+    let gameConfig = {
+      initialTimeSec: 30,
+      timeDecayFactor: 0.96,
+      rangeMax: 30,
+      op: "add", // add / sub / mul / div
+      fastMode: false,
+      randomMode: false,
+    };
+
+    let playerState = {
+      name: "",
+      emoji: "😀",
+    };
+
+    let gameState = {
+      score: 0,
+      bestScore: 0,
+      lives: 3,
+      streak: 0,
+      currentAnswer: "",
+      question: null,
+      currentTimeLimit: 30,
+      timerStartTime: 0,
+      timerEndTime: 0,
+      timerId: null,
+    };
+
+    // ======== 螢幕切換 ========
+    function showScreen(key) {
+      Object.values(SCREENS).forEach(s => s.classList.remove("active"));
+      SCREENS[key].classList.add("active");
+    }
+
+    // ======== 設定載入／儲存 / Leaderboard ========
+    function loadSettingsFromStorage() {
+      try {
+        const raw = localStorage.getItem(LOCAL_KEYS.settings);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          Object.assign(gameConfig, saved);
+        }
+      } catch (e) {}
+      document.getElementById("initialTimeSelect").value = gameConfig.initialTimeSec.toString();
+      document.getElementById("decaySelect").value = gameConfig.timeDecayFactor.toString();
+      document.getElementById("rangeSlider").value = gameConfig.rangeMax.toString();
+      document.getElementById("rangeValueLabel").innerText = gameConfig.rangeMax + " 以內";
+      document.getElementById("chkFastMode").checked = gameConfig.fastMode;
+      document.getElementById("chkRandomMode").checked = gameConfig.randomMode;
+      const radios = document.querySelectorAll("input[name='opRadio']");
+      radios.forEach(r => {
+        r.checked = (r.value === gameConfig.op);
+      });
+      applyRandomModeDisable();
+    }
+
+    function saveSettingsToStorage() {
+      const slider = document.getElementById("rangeSlider");
+      const fastMode = document.getElementById("chkFastMode").checked;
+      const randomMode = document.getElementById("chkRandomMode").checked;
+      const radios = document.querySelectorAll("input[name='opRadio']");
+      let selectedOp = "add";
+      radios.forEach(r => {
+        if (r.checked) selectedOp = r.value;
+      });
+
+      gameConfig.initialTimeSec = parseInt(document.getElementById("initialTimeSelect").value, 10);
+      gameConfig.timeDecayFactor = parseFloat(document.getElementById("decaySelect").value);
+      gameConfig.rangeMax = parseInt(slider.value, 10);
+      gameConfig.fastMode = fastMode;
+      gameConfig.randomMode = randomMode;
+      gameConfig.op = selectedOp;
+
+      localStorage.setItem(LOCAL_KEYS.settings, JSON.stringify(gameConfig));
+      alert("設定已儲存！");
+    }
+
+    function loadBestScore() {
+      const raw = localStorage.getItem(LOCAL_KEYS.bestScore);
+      let best = 0;
+      if (raw) {
+        const n = parseInt(raw, 10);
+        if (!isNaN(n)) best = n;
+      }
+      gameState.bestScore = best;
+      lblBestScore.innerText = best.toString();
+    }
+
+    function saveBestScore() {
+      localStorage.setItem(LOCAL_KEYS.bestScore, gameState.bestScore.toString());
+    }
+
+    function loadLeaderboard() {
+      try {
+        const raw = localStorage.getItem(LOCAL_KEYS.leaderboard);
+        if (raw) {
+          const arr = JSON.parse(raw);
+          return Array.isArray(arr) ? arr : [];
+        }
+      } catch (e) {}
+      return [];
+    }
+
+    function saveLeaderboard(list) {
+      localStorage.setItem(LOCAL_KEYS.leaderboard, JSON.stringify(list));
+    }
+
+    function updateLeaderboardTable() {
+      const list = loadLeaderboard().sort((a, b) => b.score - a.score);
+      leaderboardTableBody.innerHTML = "";
+      list.forEach((item, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${item.name}</td>
+          <td>${item.emoji}</td>
+          <td>${item.score}</td>
+        `;
+        leaderboardTableBody.appendChild(tr);
+      });
+    }
+
+    function addLeaderboardRecord(name, emoji, score) {
+      const list = loadLeaderboard();
+      const filtered = list.filter(x => x.name !== name);
+      filtered.push({ name, emoji, score, time: Date.now() });
+      saveLeaderboard(filtered);
+    }
+
+    // ======== 題目產生 ========
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateQuestion() {
+      let op = gameConfig.op;
+      let range = gameConfig.rangeMax;
+
+      if (gameConfig.randomMode) {
+        const ops = ["add", "sub", "mul", "div"];
+        op = ops[randomInt(0, ops.length - 1)];
+        const ranges = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+        range = ranges[randomInt(0, ranges.length - 1)];
+      }
+
+      let a, b, answer;
+
+      switch (op) {
+        case "add":
+          a = randomInt(0, Math.floor(range / 2));
+          b = randomInt(0, range - a);
+          answer = a + b;
+          break;
+        case "sub":
+          a = randomInt(0, range);
+          b = randomInt(0, a);
+          answer = a - b;
+          break;
+        case "mul":
+          // 控制結果不太大
+          const maxFactor = Math.max(2, Math.floor(Math.sqrt(range)));
+          a = randomInt(0, maxFactor);
+          b = randomInt(0, maxFactor);
+          answer = a * b;
+          break;
+        case "div":
+          // 先決定整數結果與除數，再算被除數
+          const result = randomInt(1, Math.max(2, Math.floor(range / 2)));
+          b = randomInt(1, 9);
+          a = result * b;
+          answer = result;
+          break;
+        default:
+          a = 1; b = 1; answer = 2;
+      }
+
+      const symbol = op === "add" ? "+" : op === "sub" ? "-" : op === "mul" ? "×" : "÷";
+
+      const q = { a, b, op, symbol, answer, range };
+      gameState.question = q;
+      updateVerticalQuestion();
+    }
+
+    function updateVerticalQuestion() {
+      const q = gameState.question;
+      if (!q) {
+        questionVerticalEl.textContent = "";
+        return;
+      }
+
+      const aStr = q.a.toString();
+      const bStr = q.b.toString();
+      const maxLen = Math.max(aStr.length, bStr.length);
+      const pad = (s) => s.padStart(maxLen, " ");
+
+      const line1 = " " + pad(aStr);
+      const line2 = q.symbol + pad(bStr);
+      questionVerticalEl.textContent = line1 + "\n" + line2 + "\n" + "─".repeat(maxLen + 1);
+    }
+
+    // ======== 計時器繪圖 ========
+    function drawTimer(progress) {
+      const ctx = timerCtx;
+      const w = timerCanvas.width;
+      const h = timerCanvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = Math.min(w, h) / 2 - 12;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // 背景圈
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = "#ffe0b3";
+      ctx.lineWidth = 18;
+      ctx.stroke();
+
+      // 進度圈 (iOS 風格：一開始滿圈，慢慢消失)
+      const startAngle = -Math.PI / 2;
+      const endAngle = startAngle + Math.PI * 2 * progress;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, startAngle, endAngle);
+      const grad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
+      grad.addColorStop(0, "#ff5e57");
+      grad.addColorStop(0.5, "#ff9f1c");
+      grad.addColorStop(1, "#ffca3a");
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 18;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+
+    function startTimer() {
+      if (gameState.timerId) {
+        cancelAnimationFrame(gameState.timerId);
+      }
+      const duration = gameState.currentTimeLimit * 1000;
+      const now = performance.now();
+      gameState.timerStartTime = now;
+      gameState.timerEndTime = now + duration;
+
+      function tick(t) {
+        const remaining = Math.max(0, gameState.timerEndTime - t);
+        const progress = remaining / duration; // 0~1
+        drawTimer(progress);
+        lblTimeRemaining.innerText = (remaining / 1000).toFixed(1);
+
+        if (remaining <= 0) {
+          onTimeUp();
+        } else {
+          gameState.timerId = requestAnimationFrame(tick);
+        }
+      }
+
+      gameState.timerId = requestAnimationFrame(tick);
+    }
+
+    function stopTimer() {
+      if (gameState.timerId) {
+        cancelAnimationFrame(gameState.timerId);
+        gameState.timerId = null;
+      }
+    }
+
+    function getRemainingTimeSec() {
+      if (!gameState.timerEndTime) return 0;
+      const now = performance.now();
+      return Math.max(0, (gameState.timerEndTime - now) / 1000);
+    }
+
+    // ======== 遊戲流程 ========
+    function resetGameState() {
+      gameState.score = 0;
+      gameState.lives = 3;
+      gameState.streak = 0;
+      gameState.currentAnswer = "";
+      gameState.currentTimeLimit = gameConfig.initialTimeSec;
+      lblScore.innerText = "0";
+      lblHearts.innerText = "❤️❤️❤️";
+      answerDisplay.innerText = "";
+      lblTimeRemaining.innerText = gameConfig.initialTimeSec.toFixed(1);
+      drawTimer(1);
+    }
+
+    function startGame() {
+      const nameInput = document.getElementById("playerName");
+      const emojiBtnSelected = document.querySelector(".emoji-btn.selected");
+      const name = nameInput.value.trim() || "小小數學家";
+      const emoji = emojiBtnSelected ? emojiBtnSelected.textContent : "😀";
+
+      playerState.name = name;
+      playerState.emoji = emoji;
+
+      lblPlayerInfo.innerText = `${emoji} ${name}`;
+
+      resetGameState();
+      generateQuestion();
+      startTimer();
+
+      showScreen("game");
+    }
+
+    function applyRandomModeDisable() {
+      const randomMode = document.getElementById("chkRandomMode").checked;
+      const rangeSlider = document.getElementById("rangeSlider");
+      const radios = document.querySelectorAll("input[name='opRadio']");
+      rangeSlider.disabled = randomMode;
+      radios.forEach(r => r.disabled = randomMode);
+    }
+
+    function consumeLifeAndCheckGameOver(reason) {
+      gameState.lives -= 1;
+      if (gameState.lives < 0) gameState.lives = 0;
+      lblHearts.innerText = "❤️".repeat(gameState.lives);
+
+      gameState.streak = 0;
+
+      if (gameState.lives <= 0) {
+        endGame(reason);
+      } else {
+        nextRound();
+      }
+    }
+
+    function onTimeUp() {
+      stopTimer();
+      if (gameConfig.fastMode) {
+        // 快而準模式：時間到也視為答錯，扣分
+        gameState.score = Math.max(0, gameState.score - 5);
+        lblScore.innerText = gameState.score.toString();
+      }
+      consumeLifeAndCheckGameOver("timeUp");
+    }
+
+    function onCorrectAnswer() {
+      stopTimer();
+      const remainingSec = getRemainingTimeSec();
+      const durationSec = gameState.currentTimeLimit;
+      const ratio = Math.min(1, Math.max(0, remainingSec / durationSec));
+
+      let gained = 10;
+      if (gameConfig.fastMode) {
+        // 快而準模式：愈快，加分愈多 (額外 0~20 分)
+        gained = 10 + Math.floor(ratio * 20);
+      }
+
+      gameState.score += gained;
+      lblScore.innerText = gameState.score.toString();
+
+      gameState.streak += 1;
+
+      // 起動答對動畫
+      timerWrapper.classList.remove("correct-flash");
+      void timerWrapper.offsetWidth;
+      timerWrapper.classList.add("correct-flash");
+
+      // 檢查是否刷新最高分或連續答對 5 題，若是則放 confetti
+      let triggerConfetti = false;
+      if (gameState.score > gameState.bestScore) {
+        gameState.bestScore = gameState.score;
+        lblBestScore.innerText = gameState.bestScore.toString();
+        saveBestScore();
+        triggerConfetti = true;
+      }
+      if (gameState.streak > 0 && gameState.streak % 5 === 0) {
+        triggerConfetti = true;
+      }
+
+      if (triggerConfetti && typeof confetti === "function") {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.1 },
+        });
+      }
+
+      // 下一題前縮短時間
+      gameState.currentTimeLimit = Math.max(
+        2,
+        gameState.currentTimeLimit * gameConfig.timeDecayFactor
+      );
+      nextRound();
+    }
+
+    function onWrongAnswer() {
+      stopTimer();
+      if (gameConfig.fastMode) {
+        // 快而準模式：答錯扣分
+        gameState.score = Math.max(0, gameState.score - 5);
+        lblScore.innerText = gameState.score.toString();
+      }
+      consumeLifeAndCheckGameOver("wrong");
+    }
+
+    function nextRound() {
+      gameState.currentAnswer = "";
+      answerDisplay.innerText = "";
+      generateQuestion();
+      startTimer();
+    }
+
+    function endGame(reason) {
+      stopTimer();
+
+      // 更新最高分與排行榜
+      if (gameState.score > gameState.bestScore) {
+        gameState.bestScore = gameState.score;
+        saveBestScore();
+      }
+
+      addLeaderboardRecord(playerState.name, playerState.emoji, gameState.score);
+
+      lblFinalScore.innerText = gameState.score.toString();
+      lblFinalBest.innerText = gameState.bestScore.toString();
+
+      let msg = "";
+      if (reason === "giveUp") {
+        msg = "你選擇休息一下，下次再挑戰更高分！";
+      } else if (reason === "timeUp") {
+        msg = "時間用完啦，下次再更快一點！";
+      } else if (reason === "wrong") {
+        msg = "機會用光了，已經很棒了，再試一次吧！";
+      } else {
+        msg = "遊戲結束，看看你這次的表現～";
+      }
+      gameOverMessage.innerText = msg;
+
+      updateLeaderboardTable();
+      showScreen("gameover");
+    }
+
+    // ======== 數字鍵盤 ========
+    function handleKeypadPress(key) {
+      const btn = [...keypadNumbers.querySelectorAll("button")].find(b => b.dataset.key === key);
+      if (btn) {
+        btn.classList.add("btn-pressed");
+        setTimeout(() => btn.classList.remove("btn-pressed"), 80);
+      }
+
+      if (key === "C") {
+        gameState.currentAnswer = "";
+      } else if (key === "B") {
+        gameState.currentAnswer = gameState.currentAnswer.slice(0, -1);
+      } else {
+        if (gameState.currentAnswer.length < 5) {
+          gameState.currentAnswer += key;
+        }
+      }
+      answerDisplay.innerText = gameState.currentAnswer;
+    }
+
+    keypadNumbers.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-key]");
+      if (!btn) return;
+      const key = btn.dataset.key;
+      handleKeypadPress(key);
+    });
+
+    // ======== 送出答案 / 放棄 ========
+    btnSubmitAnswer.addEventListener("click", () => {
+      btnSubmitAnswer.classList.add("btn-pressed");
+      setTimeout(() => btnSubmitAnswer.classList.remove("btn-pressed"), 80);
+
+      if (!gameState.question) return;
+      if (!gameState.currentAnswer) {
+        alert("請先輸入答案！");
+        return;
+      }
+      const ans = parseInt(gameState.currentAnswer, 10);
+      if (ans === gameState.question.answer) {
+        onCorrectAnswer();
+      } else {
+        onWrongAnswer();
+      }
+    });
+
+    btnGiveUp.addEventListener("click", () => {
+      btnGiveUp.classList.add("btn-pressed");
+      setTimeout(() => btnGiveUp.classList.remove("btn-pressed"), 80);
+      const ok = confirm("確定要放棄這一局遊戲嗎？");
+      if (ok) {
+        endGame("giveUp");
+      }
+    });
+
+    // ======== 主畫面按鈕 & 設定頁面互動 ========
+    document.getElementById("btnStartGame").addEventListener("click", startGame);
+    document.getElementById("btnToSettings").addEventListener("click", () => {
+      showScreen("settings");
+    });
+    document.getElementById("btnToLeaderboard").addEventListener("click", () => {
+      updateLeaderboardTable();
+      showScreen("leaderboard");
+    });
+
+    document.getElementById("btnBackFromSettings").addEventListener("click", () => {
+      showScreen("main");
+    });
+
+    document.getElementById("btnSettingsToMainGame").addEventListener("click", startGame);
+
+    document.getElementById("btnGameBackHome").addEventListener("click", () => {
+      const ok = confirm("離開遊戲會結束本局，是否確定？");
+      if (ok) {
+        endGame("giveUp");
+      }
+    });
+
+    document.getElementById("btnGameToSettings").addEventListener("click", () => {
+      const ok = confirm("進入設定會結束本局，是否確定？");
+      if (ok) {
+        endGame("giveUp");
+        showScreen("settings");
+      }
+    });
+
+    document.getElementById("btnBackFromLeaderboard").addEventListener("click", () => {
+      showScreen("main");
+    });
+
+    document.getElementById("btnSaveSettings").addEventListener("click", () => {
+      saveSettingsToStorage();
+    });
+
+    document.getElementById("rangeSlider").addEventListener("input", (e) => {
+      document.getElementById("rangeValueLabel").innerText = e.target.value + " 以內";
+    });
+
+    document.getElementById("chkRandomMode").addEventListener("change", applyRandomModeDisable);
+
+    // 遊戲結束畫面按鈕
+    document.getElementById("btnPlayAgain").addEventListener("click", () => {
+      startGame();
+    });
+
+    document.getElementById("btnRestBackHome").addEventListener("click", () => {
+      showScreen("main");
+    });
+
+    // 排行榜清除
+    btnClearRecords.addEventListener("click", () => {
+      const ok1 = confirm("確定要清除所有紀錄嗎？此動作無法復原。");
+      if (!ok1) return;
+      const ok2 = confirm("再次確認：真的要清除所有排行榜與最高分紀錄？");
+      if (!ok2) return;
+      localStorage.removeItem(LOCAL_KEYS.bestScore);
+      localStorage.removeItem(LOCAL_KEYS.leaderboard);
+      loadBestScore();
+      updateLeaderboardTable();
+      alert("紀錄已清除！");
+    });
+
+    // Emoji 選擇
+    document.getElementById("emojiChoices").addEventListener("click", (e) => {
+      const btn = e.target.closest(".emoji-btn");
+      if (!btn) return;
+      document.querySelectorAll(".emoji-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+
+    // ======== 初始化 ========
+    document.addEventListener("DOMContentLoaded", () => {
+      loadSettingsFromStorage();
+      loadBestScore();
+      updateLeaderboardTable();
+      drawTimer(1);
+      lblTimeRemaining.innerText = gameConfig.initialTimeSec.toFixed(1);
+    });
+
+    // ======== PWA: Service Worker ========
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(err => {
+          console.warn("Service worker 註冊失敗：", err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
