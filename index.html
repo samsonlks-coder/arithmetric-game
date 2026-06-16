@@ -2,12 +2,13 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>四式整數練習遊戲</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>四式小小數學家</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#ff9f1c" />
   <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
 
-  <!-- confetti 函式庫（canvas-confetti 或等效版本） -->
+  <!-- confetti 函式庫 -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
 
   <style>
@@ -124,6 +125,15 @@
     .btn-danger:hover {
       background: var(--danger-dark);
     }
+    .btn-submit {
+      background: #22B14C;
+      color: #fff;
+      font-weight: 700;
+    }
+    .btn-submit:active,
+    .btn-submit.btn-pressed {
+      background: #115926;
+    }
 
     .input-group {
       margin-bottom: 12px;
@@ -145,6 +155,20 @@
 
     input[type="range"] {
       width: 100%;
+    }
+
+    .name-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .name-row select {
+      flex: 0 0 150px;
+    }
+
+    .name-row input {
+      flex: 1 1 auto;
     }
 
     .emoji-choices {
@@ -173,7 +197,6 @@
       background: #fff7dd;
     }
 
-    /* 顯示／隱藏區塊 */
     .screen {
       display: none;
     }
@@ -181,7 +204,6 @@
       display: block;
     }
 
-    /* 遊戲畫面排列 */
     .game-header {
       display: flex;
       justify-content: space-between;
@@ -232,13 +254,6 @@
       white-space: pre;
     }
 
-    .vertical-line {
-      width: 80%;
-      height: 2px;
-      background: #555;
-      margin: 4px 0;
-    }
-
     .answer-display {
       text-align: center;
       font-size: 28px;
@@ -270,7 +285,7 @@
 
     .keypad-bottom-row {
       display: grid;
-      grid-template-columns: 2fr 1fr;
+      grid-template-columns: 1fr 2fr;
       gap: 8px;
       margin-top: 4px;
     }
@@ -293,24 +308,6 @@
     .keypad .key-backspace:active,
     .keypad .key-backspace.btn-pressed {
       background: #e67312;
-    }
-
-    .btn-submit {
-      background: #22B14C;
-      color: #fff;
-      font-weight: 700;
-    }
-
-    .btn-submit:active,
-    .btn-submit.btn-pressed {
-      background: #115926;
-    }
-
-    .answer-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 4px;
-      justify-content: center;
     }
 
     .info-line {
@@ -341,7 +338,6 @@
       font-size: 13px;
     }
 
-    /* 排行榜 */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -363,6 +359,29 @@
       margin-top: 4px;
     }
 
+    /* 答對/答錯/逾時 message box */
+    .message-overlay {
+      position: absolute;
+      inset: 15%;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .message-overlay.show {
+      animation: messageFade 1.5s forwards;
+    }
+    @keyframes messageFade {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
     @media (max-width: 600px) {
       .card {
         padding: 14px;
@@ -375,7 +394,6 @@
         font-size: 24px;
       }
     }
-
   </style>
 </head>
 <body>
@@ -385,12 +403,22 @@
       <!-- 主畫面 -->
       <div id="screen-main" class="screen active">
         <h1>四式小小數學家</h1>
-        <p class="subtitle">6-12歲小朋友的計算力挑戰遊戲</p>
+        <p class="subtitle">適合所有人遊玩的快速計算挑戰遊戲</p>
 
         <div class="section">
           <div class="input-group">
-            <label for="playerName">玩家姓名</label>
-            <input id="playerName" type="text" placeholder="輸入你的名字" />
+            <label for="playerNameSelect">玩家姓名</label>
+            <div class="name-row">
+              <select id="playerNameSelect">
+                <option value="">請選擇:</option>
+                <option value="Ethan">Ethan</option>
+                <option value="Eran">Eran</option>
+                <option value="Samson">Samson</option>
+                <option value="Joey">Joey</option>
+                <option value="other">其他…</option>
+              </select>
+              <input id="playerNameCustom" type="text" placeholder="輸入其他姓名" disabled />
+            </div>
           </div>
           <div class="input-group">
             <label>選擇頭像 Emoji</label>
@@ -400,11 +428,13 @@
               <button type="button" class="emoji-btn">😎</button>
               <button type="button" class="emoji-btn">😂</button>
               <button type="button" class="emoji-btn">😍</button>
-              <button type="button" class="emoji-btn">🦄</button>
               <button type="button" class="emoji-btn">🐱</button>
               <button type="button" class="emoji-btn">🐶</button>
+              <button type="button" class="emoji-btn">🦄</button>
               <button type="button" class="emoji-btn">🐼</button>
-              <button type="button" class="emoji-btn">🐲</button>
+              <button type="button" class="emoji-btn">👨‍🚀</button>
+              <button type="button" class="emoji-btn">🪐</button>
+              <button type="button" class="emoji-btn">👾</button>
               <button type="button" class="emoji-btn">👽</button>
             </div>
           </div>
@@ -436,14 +466,13 @@
         <div class="section">
           <h3>時間設定</h3>
           <div class="input-group">
-            <label for="initialTimeSelect">每題起始作答時間</label>
+            <label for="initialTimeSelect">起始作答時間</label>
             <select id="initialTimeSelect">
-              <option value="5">5 秒</option>
               <option value="10">10 秒</option>
-              <option value="15">15 秒</option>
               <option value="20">20 秒</option>
-              <option value="25">25 秒</option>
               <option value="30" selected>30 秒 (預設)</option>
+              <option value="45">45 秒</option>
+              <option value="60">60 秒</option>
             </select>
           </div>
           <div class="input-group">
@@ -459,8 +488,9 @@
         <div class="section">
           <h3>題目設定</h3>
           <div class="input-group">
-            <label for="rangeSlider">數值範圍 (10 - 100 以內)</label>
-            <input type="range" id="rangeSlider" min="10" max="100" step="10" value="30" />
+            <label for="rangeSlider">數值範圍</label>
+            <!-- 9 個離散值：10,20,30,50,100,200,300,500,1000 (index 0-8，預設 index=2 對應 30) -->
+            <input type="range" id="rangeSlider" min="0" max="8" step="1" value="2" />
             <div class="small-hint">目前範圍：<span id="rangeValueLabel">30 以內</span></div>
           </div>
 
@@ -485,7 +515,7 @@
           <div class="input-group">
             <label>
               <input type="checkbox" id="chkRandomMode" />
-              隨機計算組合 (範圍與算法每題隨機)
+              隨機計算組合 (每題的「數值範圍」與「運算種類」均隨機)
             </label>
             <div class="small-hint">
               若勾選此項，以上的「數值範圍」與「運算種類」將會無法被改變。
@@ -524,9 +554,8 @@
 
         <div class="timer-wrapper" id="timerWrapper">
           <canvas id="timerCanvas" width="240" height="240"></canvas>
-          <div class="question-vertical" id="questionVertical">
-            <!-- JS 產生直式算式 -->
-          </div>
+          <div class="question-vertical" id="questionVertical"></div>
+          <div class="message-overlay" id="messageOverlay"></div>
         </div>
 
         <div class="info-line">
@@ -536,7 +565,6 @@
         <div class="answer-display" id="answerDisplay"></div>
 
         <div class="keypad" id="keypadNumbers">
-          <!-- 1-9, 0, C, ⌫ -->
           <button data-key="1">1</button>
           <button data-key="2">2</button>
           <button data-key="3">3</button>
@@ -546,14 +574,14 @@
           <button data-key="7">7</button>
           <button data-key="8">8</button>
           <button data-key="9">9</button>
-          <button data-key="C" class="key-clear">清除</button>
+          <button data-key="C" class="key-clear">C 清除</button>
           <button data-key="0">0</button>
-          <button data-key="B" class="key-backspace">⌫</button>
+          <button data-key="B" class="key-backspace">⌫ 退格</button>
         </div>
 
         <div class="keypad-bottom-row">
-          <button id="btnSubmitAnswer" class="btn-submit">送出答案</button>
           <button id="btnGiveUp" class="btn-danger">放棄</button>
+          <button id="btnSubmitAnswer" class="btn-submit">送出答案</button>
         </div>
       </div>
 
@@ -564,7 +592,7 @@
         </div>
 
         <h2>排行榜</h2>
-        <p class="subtitle">依最高分排序，同名玩家以最新紀錄為主。</p>
+        <p class="subtitle">依最高分排序，同名玩家僅保留最高紀錄。</p>
 
         <table id="leaderboardTable">
           <thead>
@@ -575,9 +603,7 @@
               <th>最高分</th>
             </tr>
           </thead>
-          <tbody>
-            <!-- JS 產生 -->
-          </tbody>
+          <tbody></tbody>
         </table>
 
         <div class="center" style="margin-top: 16px;">
@@ -597,12 +623,19 @@
 
         <div class="btn-row">
           <button id="btnPlayAgain">再玩一次</button>
-          <button class="btn-secondary" id="btnRestBackHome">休息一會</button>
+          <button class="btn-secondary" id="btnRestBackHome">返回主畫面</button>
         </div>
       </div>
 
     </div>
   </div>
+
+  <!-- 音效（請放置對應 mp3 檔於同目錄） -->
+  <audio id="sndKey" src="snd-key.wav" preload="auto"></audio>
+  <audio id="sndClear" src="snd-clear.wav" preload="auto"></audio>
+  <audio id="sndBackspace" src="snd-backspace.wav" preload="auto"></audio>
+  <audio id="sndCorrect" src="snd-correct.wav" preload="auto"></audio>
+  <audio id="sndWrong" src="snd-wrong.wav" preload="auto"></audio>
 
   <script>
     // ======== 全域狀態 ========
@@ -614,10 +647,13 @@
       gameover: document.getElementById("screen-gameover"),
     };
 
+    const RANGE_OPTIONS = [10, 20, 30, 50, 100, 200, 300, 500, 1000];
+
     const timerCanvas = document.getElementById("timerCanvas");
     const timerCtx = timerCanvas.getContext("2d");
     const questionVerticalEl = document.getElementById("questionVertical");
     const timerWrapper = document.getElementById("timerWrapper");
+    const messageOverlay = document.getElementById("messageOverlay");
 
     const lblScore = document.getElementById("lblScore");
     const lblBestScore = document.getElementById("lblBestScore");
@@ -637,6 +673,12 @@
     const lblFinalBest = document.getElementById("lblFinalBest");
     const gameOverMessage = document.getElementById("gameOverMessage");
 
+    const sndKey = document.getElementById("sndKey");
+    const sndClear = document.getElementById("sndClear");
+    const sndBackspace = document.getElementById("sndBackspace");
+    const sndCorrect = document.getElementById("sndCorrect");
+    const sndWrong = document.getElementById("sndWrong");
+
     const LOCAL_KEYS = {
       bestScore: "mathKidsBestScore",
       leaderboard: "mathKidsLeaderboard",
@@ -647,7 +689,7 @@
       initialTimeSec: 30,
       timeDecayFactor: 0.96,
       rangeMax: 30,
-      op: "add", // add / sub / mul / div
+      op: "add",
       fastMode: false,
       randomMode: false,
     };
@@ -668,12 +710,40 @@
       timerStartTime: 0,
       timerEndTime: 0,
       timerId: null,
+      showFeedback: false   // ★ 新增
     };
 
-    // ======== 螢幕切換 ========
+    // ======== 工具函式 ========
     function showScreen(key) {
       Object.values(SCREENS).forEach(s => s.classList.remove("active"));
       SCREENS[key].classList.add("active");
+    }
+
+    function playSound(el) {
+      if (!el) return;
+      try {
+        el.currentTime = 0;
+        el.play();
+      } catch (e) {}
+    }
+
+    function renderHearts(lives) {
+      switch (lives) {
+        case 3: return "❤️❤️❤️";
+        case 2: return "🩶❤️❤️";
+        case 1: return "🩶🩶❤️";
+        default: return "🩶🩶🩶";
+      }
+    }
+
+    function showMessage(text) {
+    // ★ 如果是第一題（showFeedback = false），直接略過
+      if (!gameState.showFeedback) return;
+
+      messageOverlay.classList.remove("show");
+      messageOverlay.textContent = text;
+      void messageOverlay.offsetWidth;
+      messageOverlay.classList.add("show");
     }
 
     // ======== 設定載入／儲存 / Leaderboard ========
@@ -685,10 +755,16 @@
           Object.assign(gameConfig, saved);
         }
       } catch (e) {}
+
       document.getElementById("initialTimeSelect").value = gameConfig.initialTimeSec.toString();
       document.getElementById("decaySelect").value = gameConfig.timeDecayFactor.toString();
-      document.getElementById("rangeSlider").value = gameConfig.rangeMax.toString();
-      document.getElementById("rangeValueLabel").innerText = gameConfig.rangeMax + " 以內";
+
+      const slider = document.getElementById("rangeSlider");
+      let idx = RANGE_OPTIONS.indexOf(gameConfig.rangeMax);
+      if (idx === -1) idx = 2; // 預設 30
+      slider.value = idx.toString();
+      document.getElementById("rangeValueLabel").innerText = RANGE_OPTIONS[idx] + " 以內";
+
       document.getElementById("chkFastMode").checked = gameConfig.fastMode;
       document.getElementById("chkRandomMode").checked = gameConfig.randomMode;
       const radios = document.querySelectorAll("input[name='opRadio']");
@@ -700,6 +776,7 @@
 
     function saveSettingsToStorage() {
       const slider = document.getElementById("rangeSlider");
+      const sliderIndex = parseInt(slider.value, 10);
       const fastMode = document.getElementById("chkFastMode").checked;
       const randomMode = document.getElementById("chkRandomMode").checked;
       const radios = document.querySelectorAll("input[name='opRadio']");
@@ -710,7 +787,7 @@
 
       gameConfig.initialTimeSec = parseInt(document.getElementById("initialTimeSelect").value, 10);
       gameConfig.timeDecayFactor = parseFloat(document.getElementById("decaySelect").value);
-      gameConfig.rangeMax = parseInt(slider.value, 10);
+      gameConfig.rangeMax = RANGE_OPTIONS[sliderIndex] || 30;
       gameConfig.fastMode = fastMode;
       gameConfig.randomMode = randomMode;
       gameConfig.op = selectedOp;
@@ -764,11 +841,18 @@
       });
     }
 
+    // 只在新分數更高時才覆蓋同名玩家的紀錄
     function addLeaderboardRecord(name, emoji, score) {
       const list = loadLeaderboard();
-      const filtered = list.filter(x => x.name !== name);
-      filtered.push({ name, emoji, score, time: Date.now() });
-      saveLeaderboard(filtered);
+      const idx = list.findIndex(x => x.name === name);
+      if (idx >= 0) {
+        if (score > list[idx].score) {
+          list[idx] = { name, emoji, score, time: Date.now() };
+        }
+      } else {
+        list.push({ name, emoji, score, time: Date.now() });
+      }
+      saveLeaderboard(list);
     }
 
     // ======== 題目產生 ========
@@ -783,7 +867,7 @@
       if (gameConfig.randomMode) {
         const ops = ["add", "sub", "mul", "div"];
         op = ops[randomInt(0, ops.length - 1)];
-        const ranges = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+        const ranges = RANGE_OPTIONS;
         range = ranges[randomInt(0, ranges.length - 1)];
       }
 
@@ -801,14 +885,12 @@
           answer = a - b;
           break;
         case "mul":
-          // 控制結果不太大
           const maxFactor = Math.max(2, Math.floor(Math.sqrt(range)));
           a = randomInt(0, maxFactor);
           b = randomInt(0, maxFactor);
           answer = a * b;
           break;
         case "div":
-          // 先決定整數結果與除數，再算被除數
           const result = randomInt(1, Math.max(2, Math.floor(range / 2)));
           b = randomInt(1, 9);
           a = result * b;
@@ -853,14 +935,12 @@
 
       ctx.clearRect(0, 0, w, h);
 
-      // 背景圈
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.strokeStyle = "#ffe0b3";
       ctx.lineWidth = 18;
       ctx.stroke();
 
-      // 進度圈 (iOS 風格：一開始滿圈，慢慢消失)
       const startAngle = -Math.PI / 2;
       const endAngle = startAngle + Math.PI * 2 * progress;
 
@@ -887,7 +967,7 @@
 
       function tick(t) {
         const remaining = Math.max(0, gameState.timerEndTime - t);
-        const progress = remaining / duration; // 0~1
+        const progress = remaining / duration;
         drawTimer(progress);
         lblTimeRemaining.innerText = (remaining / 1000).toFixed(1);
 
@@ -921,17 +1001,36 @@
       gameState.streak = 0;
       gameState.currentAnswer = "";
       gameState.currentTimeLimit = gameConfig.initialTimeSec;
+
+    // ★ 這兩行是關鍵：每次「新一局」第一題都不顯示提示框
+      gameState.showFeedback = false;
+      messageOverlay.classList.remove("show");
+      messageOverlay.textContent = "";
+
       lblScore.innerText = "0";
-      lblHearts.innerText = "❤️❤️❤️";
+      lblHearts.innerText = renderHearts(gameState.lives);
       answerDisplay.innerText = "";
       lblTimeRemaining.innerText = gameConfig.initialTimeSec.toFixed(1);
       drawTimer(1);
     }
 
+    function getPlayerName() {
+      const select = document.getElementById("playerNameSelect");
+      const input = document.getElementById("playerNameCustom");
+      const val = select.value;
+      if (val === "other") {
+        const name = input.value.trim();
+        return name || "小小數學家";
+      }
+      if (val === "") {
+        return "小小數學家";
+      }
+      return val;
+    }
+
     function startGame() {
-      const nameInput = document.getElementById("playerName");
       const emojiBtnSelected = document.querySelector(".emoji-btn.selected");
-      const name = nameInput.value.trim() || "小小數學家";
+      const name = getPlayerName();
       const emoji = emojiBtnSelected ? emojiBtnSelected.textContent : "😀";
 
       playerState.name = name;
@@ -957,8 +1056,7 @@
     function consumeLifeAndCheckGameOver(reason) {
       gameState.lives -= 1;
       if (gameState.lives < 0) gameState.lives = 0;
-      lblHearts.innerText = "❤️".repeat(gameState.lives);
-
+      lblHearts.innerText = renderHearts(gameState.lives);
       gameState.streak = 0;
 
       if (gameState.lives <= 0) {
@@ -970,8 +1068,8 @@
 
     function onTimeUp() {
       stopTimer();
+      showMessage("⏲️時間到了！");
       if (gameConfig.fastMode) {
-        // 快而準模式：時間到也視為答錯，扣分
         gameState.score = Math.max(0, gameState.score - 5);
         lblScore.innerText = gameState.score.toString();
       }
@@ -986,36 +1084,37 @@
 
       let gained = 10;
       if (gameConfig.fastMode) {
-        // 快而準模式：愈快，加分愈多 (額外 0~20 分)
         gained = 10 + Math.floor(ratio * 20);
       }
 
       gameState.score += gained;
       lblScore.innerText = gameState.score.toString();
-
       gameState.streak += 1;
 
-      // 起動答對動畫
       timerWrapper.classList.remove("correct-flash");
       void timerWrapper.offsetWidth;
       timerWrapper.classList.add("correct-flash");
 
-      // 答對題目則放 confetti
       if (gameState.score > gameState.bestScore) {
         gameState.bestScore = gameState.score;
         lblBestScore.innerText = gameState.bestScore.toString();
         saveBestScore();
       }
 
+      // 每次答對都放 confetti
       if (typeof confetti === "function") {
         confetti({
-          particleCount: 120,
-          spread: 70,
-          origin: { y: 0.1 },
+          particleCount: 150,
+          spread: 80,
+          startVelocity: 35,
+          origin: { y: 0.15 },
         });
       }
 
-      // 下一題前縮短時間
+      playSound(sndCorrect);
+      showMessage("✅太厲害！");
+
+      // 只有答對時才縮短時間
       gameState.currentTimeLimit = Math.max(
         2,
         gameState.currentTimeLimit * gameConfig.timeDecayFactor
@@ -1026,14 +1125,18 @@
     function onWrongAnswer() {
       stopTimer();
       if (gameConfig.fastMode) {
-        // 快而準模式：答錯扣分
         gameState.score = Math.max(0, gameState.score - 5);
         lblScore.innerText = gameState.score.toString();
       }
+      playSound(sndWrong);
+      showMessage("❌答錯了！");
       consumeLifeAndCheckGameOver("wrong");
     }
 
     function nextRound() {
+    // ★ 從「第二題開始」才允許顯示提示框
+      gameState.showFeedback = true;
+
       gameState.currentAnswer = "";
       answerDisplay.innerText = "";
       generateQuestion();
@@ -1043,7 +1146,6 @@
     function endGame(reason) {
       stopTimer();
 
-      // 更新最高分與排行榜
       if (gameState.score > gameState.bestScore) {
         gameState.bestScore = gameState.score;
         saveBestScore();
@@ -1078,14 +1180,17 @@
         setTimeout(() => btn.classList.remove("btn-pressed"), 80);
       }
 
-      if (key === "C") {
-        gameState.currentAnswer = "";
-      } else if (key === "B") {
-        gameState.currentAnswer = gameState.currentAnswer.slice(0, -1);
-      } else {
+      if ("0123456789".includes(key)) {
+        playSound(sndKey);
         if (gameState.currentAnswer.length < 5) {
           gameState.currentAnswer += key;
         }
+      } else if (key === "C") {
+        playSound(sndClear);
+        gameState.currentAnswer = "";
+      } else if (key === "B") {
+        playSound(sndBackspace);
+        gameState.currentAnswer = gameState.currentAnswer.slice(0, -1);
       }
       answerDisplay.innerText = gameState.currentAnswer;
     }
@@ -1108,6 +1213,7 @@
         return;
       }
       const ans = parseInt(gameState.currentAnswer, 10);
+      gameState.showFeedback = true; //
       if (ans === gameState.question.answer) {
         onCorrectAnswer();
       } else {
@@ -1164,7 +1270,9 @@
     });
 
     document.getElementById("rangeSlider").addEventListener("input", (e) => {
-      document.getElementById("rangeValueLabel").innerText = e.target.value + " 以內";
+      const idx = parseInt(e.target.value, 10);
+      const val = RANGE_OPTIONS[idx] || 30;
+      document.getElementById("rangeValueLabel").innerText = val + " 以內";
     });
 
     document.getElementById("chkRandomMode").addEventListener("change", applyRandomModeDisable);
@@ -1199,11 +1307,25 @@
       btn.classList.add("selected");
     });
 
+    // 姓名下拉 + 自訂姓名 textbox
+    const playerNameSelect = document.getElementById("playerNameSelect");
+    const playerNameCustom = document.getElementById("playerNameCustom");
+    playerNameSelect.addEventListener("change", () => {
+      if (playerNameSelect.value === "other") {
+        playerNameCustom.disabled = false;
+        playerNameCustom.focus();
+      } else {
+        playerNameCustom.disabled = true;
+        playerNameCustom.value = "";
+      }
+    });
+
     // ======== 初始化 ========
     document.addEventListener("DOMContentLoaded", () => {
       loadSettingsFromStorage();
       loadBestScore();
       updateLeaderboardTable();
+      lblHearts.innerText = renderHearts(gameState.lives);
       drawTimer(1);
       lblTimeRemaining.innerText = gameConfig.initialTimeSec.toFixed(1);
     });
@@ -1216,6 +1338,22 @@
         });
       });
     }
+
+    // 防止 iOS 上的 double-tap 放大
+    let lastTouchEnd = 0;
+    document.addEventListener(
+      "touchend",
+      function (event) {
+        const now = Date.now();
+        // 300ms 內連續兩次 touchend 視為 double-tap，阻止預設縮放行為
+        if (now - lastTouchEnd <= 300) {
+          event.preventDefault();
+        }
+        lastTouchEnd = now;
+      },
+      { passive: false }
+    );
+
   </script>
 </body>
 </html>
