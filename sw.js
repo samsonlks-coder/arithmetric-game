@@ -1,10 +1,10 @@
-const CACHE_NAME = "math-kids-cache-v1.1";
+const CACHE_NAME = "math-kids-cache-v1";
 const CORE_ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest"
-  // 若有 icon 檔可一起加進來
-  // "./icon-192.png",
+  "./favicon.ico"
+  "./icon-192.png",
   "./icon-512.png"
 ];
 
