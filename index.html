@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <title>四式小小數學家</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#ff9f1c" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
 
   <!-- confetti 函式庫 -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js" defer></script>
@@ -22,8 +22,6 @@
       --danger-dark: #d62d2d;
       --card-bg: rgba(255, 255, 255, 0.9);
       --text-main: #333;
-      --timer-track: #ffe7c2;
-      --timer-fill: #ff5e57;
       --font-main: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
@@ -41,6 +39,13 @@
       align-items: center;
       justify-content: center;
       color: var(--text-main);
+
+      /* 禁止整個頁面的文字被選取 / highlight */
+      -webkit-user-select: none;  /* Safari / iOS */
+      -moz-user-select: none;     /* Firefox */
+      -ms-user-select: none;      /* IE / Edge (舊版) */
+      user-select: none;          /* 標準語法 */
+      -webkit-touch-callout: none;/* iOS 長按不彈出複製選單 */
     }
 
     .app-container {
@@ -283,13 +288,6 @@
       background: #f1b737;
     }
 
-    .keypad-bottom-row {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: 8px;
-      margin-top: 4px;
-    }
-
     .keypad .key-clear {
       background: #ff8c2a;
       color: #fff;
@@ -308,6 +306,13 @@
     .keypad .key-backspace:active,
     .keypad .key-backspace.btn-pressed {
       background: #e67312;
+    }
+
+    .keypad-bottom-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 8px;
+      margin-top: 4px;
     }
 
     .info-line {
@@ -375,11 +380,83 @@
       pointer-events: none;
     }
     .message-overlay.show {
-      animation: messageFade 1.5s forwards;
+      animation: messageFade 2s forwards;
     }
     @keyframes messageFade {
       0% { opacity: 1; }
       100% { opacity: 0; }
+    }
+
+    /* 錯誤題目 overlay */
+    .error-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .error-overlay.hidden {
+      display: none;
+    }
+    .error-overlay-box {
+      position: relative;
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px 18px 14px 18px;
+      width: 90%;
+      max-width: 480px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.35);
+    }
+    .error-overlay-title {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+    .error-overlay-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      font-size: 16px;
+      line-height: 28px;
+      text-align: center;
+      background: #eee;
+      color: #333;
+      box-shadow: none;
+    }
+    .error-overlay-close:hover {
+      background: #ddd;
+    }
+    .error-list-item {
+      border-radius: 10px;
+      border: 1px solid #eee;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      background: #fffdf5;
+      font-size: 14px;
+    }
+    .error-list-question {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .error-list-your {
+      margin-bottom: 4px;
+    }
+    .error-list-correct {
+      margin-top: 4px;
+    }
+    .error-list-item button {
+      font-size: 12px;
+      padding: 4px 8px;
+      box-shadow: 0 2px 0 rgba(0,0,0,0.13);
     }
 
     @media (max-width: 600px) {
@@ -423,7 +500,6 @@
           <div class="input-group">
             <label>選擇頭像 Emoji</label>
             <div class="emoji-choices" id="emojiChoices">
-              <!-- 會由 JS 指定選中，預設第一個 -->
               <button type="button" class="emoji-btn selected">😀</button>
               <button type="button" class="emoji-btn">😎</button>
               <button type="button" class="emoji-btn">😂</button>
@@ -489,7 +565,7 @@
           <h3>題目設定</h3>
           <div class="input-group">
             <label for="rangeSlider">數值範圍</label>
-            <!-- 9 個離散值：10,20,30,50,100,200,300,500,1000 (index 0-8，預設 index=2 對應 30) -->
+            <!-- 依你既有版本，這裡使用 9 個離散值，預設 30 -->
             <input type="range" id="rangeSlider" min="0" max="8" step="1" value="2" />
             <div class="small-hint">目前範圍：<span id="rangeValueLabel">30 以內</span></div>
           </div>
@@ -498,27 +574,46 @@
             <label>運算種類</label>
             <div>
               <label>
-              <label style="margin-left: 12px;"><input type="radio" name="opRadio" value="add" checked /> 加法</label>
-              <label style="margin-left: 12px;"><input type="radio" name="opRadio" value="sub" /> 減法</label>
-              <label style="margin-left: 12px;"><input type="radio" name="opRadio" value="mul" /> 乘法</label>
-              <label style="margin-left: 12px;"><input type="radio" name="opRadio" value="div" /> 除法</label>
+                <label style="margin-left: 12px;"><input type="radio" name="opRadio" value="add" checked /> 加法
+                <span style="margin-left: 20px;"><input type="radio" name="opRadio" value="sub" /> 減法</span>
+                <span style="margin-left: 20px;"><input type="radio" name="opRadio" value="mul" /> 乘法</span>
+                <span style="margin-left: 20px;"><input type="radio" name="opRadio" value="div" /> 除法</span>
+              </label>
             </div>
           </div>
 
           <div class="input-group">
             <label>
               <input type="checkbox" id="chkFastMode" />
-              快而準模式 (愈快答對分數愈高，答錯會扣分)
+              快而準模式
             </label>
+            <div class="small-hint">
+              <span style="margin-left: 20px;">愈快答對分數愈高，答錯會扣分。</span>
+            </div>
           </div>
 
           <div class="input-group">
             <label>
               <input type="checkbox" id="chkRandomMode" />
-              隨機計算組合 (每題的「數值範圍」與「運算種類」均隨機)
+              隨機計算組合
             </label>
             <div class="small-hint">
-              若勾選此項，以上的「數值範圍」與「運算種類」將會無法被改變。
+              <span style="margin-left: 20px;">每題的「數值範圍」與「運算種類」均隨機生成。</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>其他設定</h3>
+          <div class="input-group">
+            <label>音效種類</label>
+            <div>
+              <!-- 這三個 radio 已由你加入，下面的 JS 會讀取它們 -->
+              <label>
+                <label style="margin-left: 12px;"><input type="radio" name="soundType" value="basic" id="soundBasic" checked /> 基本
+                <span style="margin-left: 20px;"><input type="radio" name="soundType" value="mario" id="soundMario" /> 馬利奧</span>
+                <span style="margin-left: 20px;"><input type="radio" name="soundType" value="none" id="soundNone" /> 無音效</span></label>
+              </label>
             </div>
           </div>
         </div>
@@ -623,6 +718,7 @@
 
         <div class="btn-row">
           <button id="btnPlayAgain">再玩一次</button>
+          <button class="btn-secondary" id="btnViewErrors">檢視錯誤回答</button>
           <button class="btn-secondary" id="btnRestBackHome">返回主畫面</button>
         </div>
       </div>
@@ -630,12 +726,23 @@
     </div>
   </div>
 
-  <!-- 音效（請放置對應 mp3 檔於同目錄） -->
-  <audio id="sndKey" src="snd-key.wav" preload="auto"></audio>
-  <audio id="sndClear" src="snd-clear.wav" preload="auto"></audio>
-  <audio id="sndBackspace" src="snd-backspace.wav" preload="auto"></audio>
-  <audio id="sndCorrect" src="snd-correct.wav" preload="auto"></audio>
-  <audio id="sndWrong" src="snd-wrong.wav" preload="auto"></audio>
+  <!-- 音效：基本組 -->
+  <audio id="sndKeyBasic" src="audio/snd-key.mp3" preload="auto"></audio>
+  <audio id="sndClearBasic" src="audio/snd-clear.mp3" preload="auto"></audio>
+  <audio id="sndBackspaceBasic" src="audio/snd-backspace.mp3" preload="auto"></audio>
+  <audio id="sndCorrectBasic" src="audio/snd-correct.mp3" preload="auto"></audio>
+  <audio id="sndWrongBasic" src="audio/snd-wrong.mp3" preload="auto"></audio>
+  <audio id="sndStartBasic" src="audio/snd-start.mp3" preload="auto"></audio>
+  <audio id="sndEndBasic" src="audio/snd-end.mp3" preload="auto"></audio>
+
+  <!-- 音效：馬利奧組 -->
+  <audio id="sndKeyMario" src="audio/mario-key.mp3" preload="auto"></audio>
+  <audio id="sndClearMario" src="audio/mario-clear.mp3" preload="auto"></audio>
+  <audio id="sndBackspaceMario" src="audio/mario-backspace.mp3" preload="auto"></audio>
+  <audio id="sndCorrectMario" src="audio/mario-correct.mp3" preload="auto"></audio>
+  <audio id="sndWrongMario" src="audio/mario-wrong.mp3" preload="auto"></audio>
+  <audio id="sndStartMario" src="audio/mario-start.mp3" preload="auto"></audio>
+  <audio id="sndEndMario" src="audio/mario-end.mp3" preload="auto"></audio>
 
   <script>
     // ======== 全域狀態 ========
@@ -673,12 +780,21 @@
     const lblFinalBest = document.getElementById("lblFinalBest");
     const gameOverMessage = document.getElementById("gameOverMessage");
 
-    const sndKey = document.getElementById("sndKey");
-    const sndClear = document.getElementById("sndClear");
-    const sndBackspace = document.getElementById("sndBackspace");
-    const sndCorrect = document.getElementById("sndCorrect");
-    const sndWrong = document.getElementById("sndWrong");
+    // 錯誤題目 overlay
+    const errorOverlay = document.createElement("div");
+    errorOverlay.className = "error-overlay hidden";
+    errorOverlay.innerHTML = `
+      <div class="error-overlay-box">
+        <button class="error-overlay-close" id="btnCloseErrorOverlay">✕</button>
+        <div class="error-overlay-title">本局錯誤題目</div>
+        <div id="errorList"></div>
+      </div>
+    `;
+    document.body.appendChild(errorOverlay);
+    const errorListEl = errorOverlay.querySelector("#errorList");
+    const btnCloseErrorOverlay = errorOverlay.querySelector("#btnCloseErrorOverlay");
 
+    // 音效設定
     const LOCAL_KEYS = {
       bestScore: "mathKidsBestScore",
       leaderboard: "mathKidsLeaderboard",
@@ -692,11 +808,12 @@
       op: "add",
       fastMode: false,
       randomMode: false,
+      soundType: "basic" // "basic" | "mario" | "none"
     };
 
     let playerState = {
       name: "",
-      emoji: "😀",
+      emoji: "👨‍🚀",
     };
 
     let gameState = {
@@ -710,21 +827,35 @@
       timerStartTime: 0,
       timerEndTime: 0,
       timerId: null,
-      showFeedback: false   // ★ 新增
+      showFeedback: false,   // 控制第一題不顯示提示框
+      wrongQuestions: []     // 記錄本局最多 3 題錯題
+    };
+
+    const SOUND_IDS = {
+      basic: {
+        key: "sndKeyBasic",
+        clear: "sndClearBasic",
+        backspace: "sndBackspaceBasic",
+        correct: "sndCorrectBasic",
+        wrong: "sndWrongBasic",
+        start: "sndStart",
+        gameover: "sndEnd"
+      },
+      mario: {
+        key: "sndKeyMario",
+        clear: "sndClearMario",
+        backspace: "sndBackspaceMario",
+        correct: "sndCorrectMario",
+        wrong: "sndWrongMario",
+        start: "sndStartMario",
+        gameover: "sndEndMario"
+      }
     };
 
     // ======== 工具函式 ========
     function showScreen(key) {
       Object.values(SCREENS).forEach(s => s.classList.remove("active"));
       SCREENS[key].classList.add("active");
-    }
-
-    function playSound(el) {
-      if (!el) return;
-      try {
-        el.currentTime = 0;
-        el.play();
-      } catch (e) {}
     }
 
     function renderHearts(lives) {
@@ -736,10 +867,23 @@
       }
     }
 
-    function showMessage(text) {
-    // ★ 如果是第一題（showFeedback = false），直接略過
-      if (!gameState.showFeedback) return;
+    function playSoundByKind(kind) {
+      if (gameConfig.soundType === "none") return;
+      const map = SOUND_IDS[gameConfig.soundType];
+      if (!map) return;
+      const id = map[kind];
+      if (!id) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      try {
+        el.currentTime = 0;
+        el.play();
+      } catch (e) {}
+    }
 
+    function showMessage(text) {
+      // 第一題不顯示提示框
+      if (!gameState.showFeedback) return;
       messageOverlay.classList.remove("show");
       messageOverlay.textContent = text;
       void messageOverlay.offsetWidth;
@@ -771,6 +915,13 @@
       radios.forEach(r => {
         r.checked = (r.value === gameConfig.op);
       });
+
+      // 音效 radio
+      const soundRadios = document.querySelectorAll("input[name='soundType']");
+      soundRadios.forEach(r => {
+        r.checked = (r.value === gameConfig.soundType);
+      });
+
       applyRandomModeDisable();
     }
 
@@ -785,12 +936,19 @@
         if (r.checked) selectedOp = r.value;
       });
 
+      const soundRadios = document.querySelectorAll("input[name='soundType']");
+      let selectedSound = "basic";
+      soundRadios.forEach(r => {
+        if (r.checked) selectedSound = r.value;
+      });
+
       gameConfig.initialTimeSec = parseInt(document.getElementById("initialTimeSelect").value, 10);
       gameConfig.timeDecayFactor = parseFloat(document.getElementById("decaySelect").value);
       gameConfig.rangeMax = RANGE_OPTIONS[sliderIndex] || 30;
       gameConfig.fastMode = fastMode;
       gameConfig.randomMode = randomMode;
       gameConfig.op = selectedOp;
+      gameConfig.soundType = selectedSound;
 
       localStorage.setItem(LOCAL_KEYS.settings, JSON.stringify(gameConfig));
       alert("設定已儲存！");
@@ -1001,9 +1159,9 @@
       gameState.streak = 0;
       gameState.currentAnswer = "";
       gameState.currentTimeLimit = gameConfig.initialTimeSec;
+      gameState.showFeedback = false;  // 每一局的第一題不顯示提示框
+      gameState.wrongQuestions = [];   // 清除本局錯誤題目紀錄
 
-    // ★ 這兩行是關鍵：每次「新一局」第一題都不顯示提示框
-      gameState.showFeedback = false;
       messageOverlay.classList.remove("show");
       messageOverlay.textContent = "";
 
@@ -1031,7 +1189,7 @@
     function startGame() {
       const emojiBtnSelected = document.querySelector(".emoji-btn.selected");
       const name = getPlayerName();
-      const emoji = emojiBtnSelected ? emojiBtnSelected.textContent : "😀";
+      const emoji = emojiBtnSelected ? emojiBtnSelected.textContent : "👨‍🚀";
 
       playerState.name = name;
       playerState.emoji = emoji;
@@ -1043,6 +1201,9 @@
       startTimer();
 
       showScreen("game");
+
+      // 進入遊戲畫面時播放一次音效（依照音效種類）
+      playSoundByKind("start");
     }
 
     function applyRandomModeDisable() {
@@ -1070,10 +1231,31 @@
       stopTimer();
       showMessage("⏲️時間到了！");
       if (gameConfig.fastMode) {
-        gameState.score = Math.max(0, gameState.score - 5);
+        gameState.score = Math.max(0, gameState.score - 100);
         lblScore.innerText = gameState.score.toString();
       }
       consumeLifeAndCheckGameOver("timeUp");
+    }
+
+    function recordWrongAnswer() {
+      // 只記錄玩家有輸入答案且與正確答案不一致的情況
+      if (!gameState.question) return;
+      if (!gameState.currentAnswer) return;
+      const userAns = parseInt(gameState.currentAnswer, 10);
+      if (userAns === gameState.question.answer) return;
+
+      const item = {
+        a: gameState.question.a,
+        b: gameState.question.b,
+        symbol: gameState.question.symbol,
+        correct: gameState.question.answer,
+        user: userAns
+      };
+      gameState.wrongQuestions.push(item);
+      if (gameState.wrongQuestions.length > 3) {
+        // 只保留最近的 3 題
+        gameState.wrongQuestions.shift();
+      }
     }
 
     function onCorrectAnswer() {
@@ -1111,7 +1293,7 @@
         });
       }
 
-      playSound(sndCorrect);
+      playSoundByKind("correct");
       showMessage("✅太厲害！");
 
       // 只有答對時才縮短時間
@@ -1125,16 +1307,20 @@
     function onWrongAnswer() {
       stopTimer();
       if (gameConfig.fastMode) {
-        gameState.score = Math.max(0, gameState.score - 5);
+        gameState.score = Math.max(0, gameState.score - 100);
         lblScore.innerText = gameState.score.toString();
       }
-      playSound(sndWrong);
+
+      // 記錄錯誤題目與錯誤答案
+      recordWrongAnswer();
+
+      playSoundByKind("wrong");
       showMessage("❌答錯了！");
       consumeLifeAndCheckGameOver("wrong");
     }
 
     function nextRound() {
-    // ★ 從「第二題開始」才允許顯示提示框
+      // 從第二題開始才顯示提示框
       gameState.showFeedback = true;
 
       gameState.currentAnswer = "";
@@ -1170,6 +1356,50 @@
 
       updateLeaderboardTable();
       showScreen("gameover");
+
+      // 進入遊戲結束畫面時播放一次音效
+      playSoundByKind("gameover");
+    }
+
+    // 建立錯誤題目列表
+    function buildErrorList() {
+      errorListEl.innerHTML = "";
+      if (!gameState.wrongQuestions.length) {
+        const p = document.createElement("p");
+        p.textContent = "本局沒有錯誤回答，太厲害了！";
+        errorListEl.appendChild(p);
+        return;
+      }
+      gameState.wrongQuestions.forEach((item, index) => {
+        const wrap = document.createElement("div");
+        wrap.className = "error-list-item";
+
+        const qLine = document.createElement("div");
+        qLine.className = "error-list-question";
+        qLine.textContent = `第 ${index + 1} 題：${item.a} ${item.symbol} ${item.b} = ?`;
+        wrap.appendChild(qLine);
+
+        const yourLine = document.createElement("div");
+        yourLine.className = "error-list-your";
+        yourLine.textContent = `你的答案：${item.user}`;
+        wrap.appendChild(yourLine);
+
+        const correctLine = document.createElement("div");
+        correctLine.className = "error-list-correct";
+        const correctSpan = document.createElement("span");
+        correctSpan.textContent = "正確答案：？？？";
+        const btn = document.createElement("button");
+        btn.textContent = "顯示正確答案";
+        btn.style.marginLeft = "8px";
+        btn.addEventListener("click", () => {
+          correctSpan.textContent = `正確答案：${item.correct}`;
+        });
+        correctLine.appendChild(correctSpan);
+        correctLine.appendChild(btn);
+        wrap.appendChild(correctLine);
+
+        errorListEl.appendChild(wrap);
+      });
     }
 
     // ======== 數字鍵盤 ========
@@ -1181,15 +1411,15 @@
       }
 
       if ("0123456789".includes(key)) {
-        playSound(sndKey);
+        playSoundByKind("key");
         if (gameState.currentAnswer.length < 5) {
           gameState.currentAnswer += key;
         }
       } else if (key === "C") {
-        playSound(sndClear);
+        playSoundByKind("clear");
         gameState.currentAnswer = "";
       } else if (key === "B") {
-        playSound(sndBackspace);
+        playSoundByKind("backspace");
         gameState.currentAnswer = gameState.currentAnswer.slice(0, -1);
       }
       answerDisplay.innerText = gameState.currentAnswer;
@@ -1213,7 +1443,6 @@
         return;
       }
       const ans = parseInt(gameState.currentAnswer, 10);
-      gameState.showFeedback = true; //
       if (ans === gameState.question.answer) {
         onCorrectAnswer();
       } else {
@@ -1286,6 +1515,21 @@
       showScreen("main");
     });
 
+    document.getElementById("btnViewErrors").addEventListener("click", () => {
+      buildErrorList();
+      errorOverlay.classList.remove("hidden");
+    });
+
+    btnCloseErrorOverlay.addEventListener("click", () => {
+      errorOverlay.classList.add("hidden");
+    });
+
+    errorOverlay.addEventListener("click", (e) => {
+      if (e.target === errorOverlay) {
+        errorOverlay.classList.add("hidden");
+      }
+    });
+
     // 排行榜清除
     btnClearRecords.addEventListener("click", () => {
       const ok1 = confirm("確定要清除所有紀錄嗎？此動作無法復原。");
@@ -1330,6 +1574,20 @@
       lblTimeRemaining.innerText = gameConfig.initialTimeSec.toFixed(1);
     });
 
+    // 防止 iOS 上的 double-tap 放大（只在本頁生效）
+    let lastTouchEnd = 0;
+    document.addEventListener(
+      "touchend",
+      function (event) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+          event.preventDefault();
+        }
+        lastTouchEnd = now;
+      },
+      { passive: false }
+    );
+
     // ======== PWA: Service Worker ========
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -1338,22 +1596,6 @@
         });
       });
     }
-
-    // 防止 iOS 上的 double-tap 放大
-    let lastTouchEnd = 0;
-    document.addEventListener(
-      "touchend",
-      function (event) {
-        const now = Date.now();
-        // 300ms 內連續兩次 touchend 視為 double-tap，阻止預設縮放行為
-        if (now - lastTouchEnd <= 200) {
-          event.preventDefault();
-        }
-        lastTouchEnd = now;
-      },
-      { passive: false }
-    );
-
   </script>
 </body>
 </html>
